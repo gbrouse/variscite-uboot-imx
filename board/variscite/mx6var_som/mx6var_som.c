@@ -833,7 +833,7 @@ static int detect_mx6cb_rdisplay(struct display_info_t const *dev)
 }
 
 #define MHZ2PS(f)	(1000000/(f))
-
+#warning "Add the Sony ECX337AF support here"
 struct display_info_t const displays[] = {{
 	.bus	= -1,
 	.addr	= 0,
