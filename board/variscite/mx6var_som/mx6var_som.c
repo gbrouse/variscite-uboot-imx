@@ -121,7 +121,7 @@ u32 get_cpu_speed_grade_hz(void)
 }
 
 /*
- * Returns true iff the SOM is VAR-SOM-SOLO
+ * Returns true if the SOM is VAR-SOM-SOLO
  */
 static bool is_som_solo(void)
 {
@@ -137,7 +137,7 @@ static bool is_som_solo(void)
 }
 
 /*
- * Returns true iff the carrier board is VAR-SOLOCustomBoard
+ * Returns true if the carrier board is VAR-SOLOCustomBoard
  */
 static bool is_solo_custom_board(void)
 {
@@ -163,7 +163,7 @@ static bool is_cpu_pop_packaged(void)
 }
 
 /*
- * Returns true iff the carrier board is VAR-DT6CustomBoard
+ * Returns true if the carrier board is VAR-DT6CustomBoard
  *  (and the SOM is DART-MX6)
  */
 static inline bool is_dart_board(void)
@@ -172,12 +172,23 @@ static inline bool is_dart_board(void)
 }
 
 /*
- * Returns true iff the carrier board is VAR-MX6CustomBoard
+ * Returns true if the carrier board is VAR-MX6CustomBoard
  */
 static inline bool is_mx6_custom_board(void)
 {
 	return (!is_dart_board() && !is_solo_custom_board());
 }
+
+/*
+ * Returns true if the carrier board is FLIR
+ *  (and the SOM is DART-MX6)
+ */
+static inline bool is_flir_dart_board(void)
+{
+	//return is_dart_board();
+    return true;
+}
+
 
 enum current_board {
 	DART_BOARD,
@@ -189,6 +200,8 @@ static enum current_board get_board_indx(void)
 {
 	if (is_dart_board())
 		return DART_BOARD;
+        if (is_flir_dart_board())
+                return DART_BOARD;
 	if (is_solo_custom_board())
 		return SOLO_CUSTOM_BOARD;
 	if (is_mx6_custom_board())
@@ -334,7 +347,7 @@ int splash_screen_prepare(void)
 				.name = "emmc",
 				.storage = SPLASH_STORAGE_MMC,
 				.flags = SPLASH_STORAGE_FS,
-				.devpart = ((is_dart_board() || is_boot_from_emmc()) ? "1:2" : "1:1"),
+				.devpart = (((is_dart_board() || is_flir_dart_board()) || is_boot_from_emmc()) ? "1:2" : "1:1"),
 			},
 		};
 
@@ -530,7 +543,7 @@ static struct fsl_esdhc_cfg usdhc_cfg[2];
 #ifdef CONFIG_ENV_IS_IN_MMC
 static int mmc_map_to_kernel_blk(int dev_no)
 {
-	if ((!is_dart_board()) && (dev_no == 1))
+	if ((!(is_dart_board() || is_flir_dart_board())) && (dev_no == 1))
 		return 0;
 	return dev_no + 1;
 }
@@ -546,7 +559,7 @@ static int usdhc2_cd_gpio[] = {
 int board_mmc_getcd(struct mmc *mmc)
 {
 	struct fsl_esdhc_cfg *cfg = (struct fsl_esdhc_cfg *)mmc->priv;
-	int board = is_dart_board() ? 0 : 1;
+	int board = (is_dart_board() || is_flir_dart_board()) ? 0 : 1;
 
 	/* SD card */
 	if (cfg->esdhc_base == USDHC2_BASE_ADDR) {
@@ -599,7 +612,7 @@ int board_mmc_init(bd_t *bis)
 		case 0:
 			SETUP_IOMUX_PADS(usdhc2_pads);
 
-			board = is_dart_board() ? 0 : 1;
+			board = (is_dart_board() || is_flir_dart_board()) ? 0 : 1;
 			SETUP_IOMUX_PADS(usdhc2_cd_pad[board]);
 			gpio_direction_input(usdhc2_cd_gpio[board]);
 
@@ -608,7 +621,7 @@ int board_mmc_init(bd_t *bis)
 			usdhc_cfg[0].max_bus_width = 4;
 			break;
 		case 1:
-			if (is_dart_board()) {
+			if (is_dart_board() || is_flir_dart_board()) {
 				SETUP_IOMUX_PADS(usdhc3_pads);
 				usdhc_cfg[1].esdhc_base = USDHC3_BASE_ADDR;
 				usdhc_cfg[1].sdhc_clk = mxc_get_clock(MXC_ESDHC3_CLK);
@@ -833,7 +846,7 @@ static int detect_mx6cb_rdisplay(struct display_info_t const *dev)
 }
 
 #define MHZ2PS(f)	(1000000/(f))
-#warning "Add the Sony ECX337AF support here"
+#warning "Add the Sony ECX337AF support here..."
 struct display_info_t const displays[] = {{
 	.bus	= -1,
 	.addr	= 0,
@@ -1210,7 +1223,7 @@ int power_init_board(void)
 		pmic_reg_read(pfuze, PFUZE100_DEVICEID, &reg);
 		printf("PMIC:  PFUZE100 ID=0x%02x\n", reg);
 
-		if (is_dart_board()) {
+		if (is_dart_board() || is_flir_dart_board()) {
 
 			struct pmic_write_values dart_pmic_arr[] = {
 				/* Set SW1AB standby volage to 0.9V */
@@ -1323,8 +1336,10 @@ int board_late_init(void)
 	print_emmc_size();
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
-	if (is_dart_board())
-		setenv("board_name", "DT6CUSTOM");
+	if (is_flir_dart_board())
+		setenv("board_name", "FLIRCUSTOM");
+        else if (is_dart_board())
+                setenv("board_name", "DT6CUSTOM");
 	else if (is_solo_custom_board())
 		setenv("board_name", "SOLOCUSTOM");
 	else
@@ -1332,7 +1347,7 @@ int board_late_init(void)
 
 	if (is_som_solo())
 		setenv("board_som", "SOM-SOLO");
-	else if (is_dart_board())
+	else if (is_dart_board() || is_flir_dart_board())
 		setenv("board_som", "DART-MX6");
 	else
 		setenv("board_som", "SOM-MX6");
@@ -1429,7 +1444,7 @@ int check_recovery_cmd_file(void)
 {
 	int button_pressed = 0;
 	int recovery_mode = 0;
-	int board = is_dart_board() ? 0 : 1;
+	int board = (is_dart_board() || is_flir_dart_board()) ? 0 : 1;
 
 	recovery_mode = recovery_check_and_clean_flag();
 
@@ -1502,7 +1517,7 @@ static void gpr_init(void)
 
 static int power_init_pmic_sw2(void)
 {
-	if (!is_som_solo() && !is_dart_board()) {
+	if (!is_som_solo() && !(is_dart_board() || is_flir_dart_board())) {
 		unsigned char reg;
 
 		i2c_set_bus_num(PMIC_I2C_BUS);
@@ -1558,7 +1573,7 @@ static void spl_mx6qd_dram_setup_iomux_check_reset(void)
 
 static void spl_dram_init(void)
 {
-	if (is_dart_board())
+	if (is_dart_board() || is_flir_dart_board())
 		var_eeprom_v2_dram_init();
 	else
 		if (var_eeprom_v1_dram_init())

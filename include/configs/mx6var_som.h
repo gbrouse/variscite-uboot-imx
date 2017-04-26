@@ -290,9 +290,12 @@
 		"fi;\0" \
 	"findfdt="\
 		"if test $fdt_file = undefined; then " \
-			"if test $board_name = DT6CUSTOM && test $board_rev = MX6Q; then " \
-				"setenv fdt_file imx6q-var-dart.dtb; " \
+			"if test $board_name = FLIRCUSTOM && test $board_rev = MX6Q; then " \
+				"setenv fdt_file imx6q-var-dart-flir.dtb; " \
 			"fi; " \
+                        "if test $board_name = DT6CUSTOM && test $board_rev = MX6Q; then " \
+                                "setenv fdt_file imx6q-var-dart.dtb; " \
+                        "fi; " \
 			"if test $board_name = SOLOCUSTOM && test $board_rev = MX6Q; then " \
 				"setenv fdt_file imx6q-var-som-vsc.dtb; " \
 			"fi; " \
