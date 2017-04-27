@@ -186,7 +186,7 @@ static inline bool is_mx6_custom_board(void)
 static inline bool is_flir_dart_board(void)
 {
 	//return is_dart_board();
-    return true;
+    return false;
 }
 
 
